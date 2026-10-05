@@ -1,0 +1,10 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "workers/*"
+allowBuilds:
+  '@scarf/scarf': false
+  argon2: true
+  esbuild: true
+  msgpackr-extract: true
+  unrs-resolver: true

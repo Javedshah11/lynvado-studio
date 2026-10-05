@@ -1,0 +1,15 @@
+{
+  "name": "@lynvado/video-worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "bullmq": "^6.3.11",
+    "ioredis": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
+  }
+}

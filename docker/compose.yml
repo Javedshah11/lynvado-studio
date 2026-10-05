@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: lynvado-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lynvado}
+      POSTGRES_USER: ${POSTGRES_USER:-lynvado}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lynvado}
+
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+    volumes:
+      - lynvado_postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-lynvado} -d ${POSTGRES_DB:-lynvado}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+    networks:
+      - lynvado-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: lynvado-redis
+    restart: unless-stopped
+
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+      ]
+
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+    volumes:
+      - lynvado_redis_data:/data
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "ping",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - lynvado-network
+
+
+networks:
+  lynvado-network:
+    name: lynvado-network
+
+
+volumes:
+  lynvado_postgres_data:
+    name: lynvado-postgres-data
+
+  lynvado_redis_data:
+    name: lynvado-redis-data
