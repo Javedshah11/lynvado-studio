@@ -18,13 +18,26 @@ export const environmentSchema = z.object({
     .string()
     .min(1)
     .default(
-      'postgresql://lynvado:lynvado@localhost:5432/lynvado',
+      'postgresql://lynvado:lynvado@localhost:5434/lynvado',
     ),
 
   REDIS_URL: z
     .string()
     .min(1)
     .default('redis://localhost:6379'),
+
+  WEB_ORIGIN: z
+    .string()
+    .url()
+    .default('http://localhost:3000'),
+
+  JWT_ACCESS_SECRET: z.string().min(32),
+
+  JWT_ACCESS_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(900),
 });
 
 export type EnvironmentVariables = z.infer<

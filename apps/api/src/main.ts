@@ -26,7 +26,16 @@ async function bootstrap(): Promise<void> {
     configService.get<string>('HOST') ??
     '0.0.0.0';
 
+  const webOrigin =
+    configService.get<string>('WEB_ORIGIN') ??
+    'http://localhost:3000';
+
   app.setGlobalPrefix('api');
+
+  app.enableCors({
+    origin: webOrigin,
+    credentials: true,
+  });
 
   app.enableShutdownHooks();
 
