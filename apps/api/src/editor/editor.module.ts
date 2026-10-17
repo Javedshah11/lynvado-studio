@@ -9,5 +9,6 @@ import { EditorService } from './editor.service.js';
   imports: [AuthModule, DatabaseModule, ProjectsModule],
   controllers: [EditorController],
   providers: [EditorService],
+  exports: [EditorService],
 })
 export class EditorModule {}

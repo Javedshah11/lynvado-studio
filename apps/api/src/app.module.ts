@@ -17,6 +17,7 @@ import { ContentModule } from './content/content.module.js';
 import { EditorModule } from './editor/editor.module.js';
 import { MediaModule } from './media/media.module.js';
 import { ExportsModule } from './exports/exports.module.js';
+import { AiEditModule } from './ai-edit/ai-edit.module.js';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { ExportsModule } from './exports/exports.module.js';
     EditorModule,
     MediaModule,
     ExportsModule,
+    AiEditModule,
   ],
 
   controllers: [

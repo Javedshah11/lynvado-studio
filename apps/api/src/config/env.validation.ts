@@ -85,6 +85,10 @@ export const environmentSchema = z.object({
     .max(20 * 1024 * 1024 * 1024)
     .default(5 * 1024 * 1024 * 1024),
 
+  OLLAMA_URL: z.string().url().default('http://localhost:11434'),
+
+  OLLAMA_MODEL: z.string().trim().min(1).default('qwen2.5:3b'),
+
   WEB_ORIGIN: z
     .string()
     .url()

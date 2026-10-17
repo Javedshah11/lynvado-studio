@@ -1,7 +1,8 @@
 # Lynvado Studio deployment
 
 The production compose stack runs PostgreSQL, Redis, MinIO, the API, web app,
-intelligence service, both workers, and a one-shot database migration service.
+intelligence service, Ollama, both workers, and one-shot database migration and
+Ollama model-pull services.
 
 1. Copy `.env.example` to a deployment-only environment file.
 2. Set strong `POSTGRES_PASSWORD`, `MINIO_ROOT_PASSWORD`, and

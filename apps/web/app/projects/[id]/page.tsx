@@ -2,7 +2,7 @@
 
 import {
   ArrowLeft, Captions, ChevronLeft, ChevronRight, Download, Film, LoaderCircle,
-  Pause, Play, Redo2, Scissors, Trash2, Undo2, Upload,
+  Pause, Play, Redo2, Scissors, Sparkles, Trash2, Undo2, Upload,
 } from 'lucide-react';
 import Link from 'next/link';
 import { use, useCallback, useEffect, useRef, useState } from 'react';
@@ -42,6 +42,13 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
   const [saveState, setSaveState] = useState<SaveState>('clean');
   const [exportJob, setExportJob] = useState<ExportJob | null>(null);
   const [exportBusy, setExportBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [processing, setProcessing] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('Remove filler and pauses, keep the strongest moments, and add captions.');
+  const [aiStyle, setAiStyle] = useState<'auto' | 'highlights' | 'social' | 'clean'>('auto');
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiExplanation, setAiExplanation] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -68,12 +75,42 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
       setAssets(currentAssets);
       setTimeline(initial);
       setSelectedId(initial.videoTrack.clips[0]?.id ?? null);
+      setProcessing(currentAssets.some(({ kind }) => kind === 'original') && (!currentAssets.some(({ kind }) => kind === 'proxy') || !captions));
       initializedRef.current = true;
       if (!saved && (initial.videoTrack.clips.length || initial.captionTrack.items.length)) setSaveState('dirty');
     }).catch((caught) => setError(caught instanceof Error ? caught.message : 'Could not load the editor.'))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, [id]);
+
+  useEffect(() => {
+    if (!processing) return;
+    const timer = window.setInterval(() => {
+      Promise.all([
+        apiRequest<MediaAsset[]>(`/projects/${id}/media`),
+        apiRequest<CaptionTrack>(`/projects/${id}/captions`).catch(() => null),
+      ]).then(([currentAssets, captions]) => {
+        setAssets(currentAssets);
+        const proxy = currentAssets.find(({ kind }) => kind === 'proxy');
+        if (!proxy || !captions) return;
+        setProcessing(false);
+        setTimeline((current) => {
+          if (current?.videoTrack.clips.length) return current;
+          const next: TimelineDocument = {
+            schemaVersion: 1,
+            aspectRatio: '16:9',
+            videoTrack: { clips: [{ id: crypto.randomUUID(), assetId: proxy.id, inMs: 0, outMs: Math.max(1, proxy.durationMs ?? 1) }] },
+            captionTrack: { enabled: true, items: captions.segments.map((item) => ({ ...item })) },
+          };
+          setSelectedId(next.videoTrack.clips[0].id);
+          editRevisionRef.current += 1;
+          setSaveState('dirty');
+          return next;
+        });
+      }).catch(() => undefined);
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [id, processing]);
 
   useEffect(() => {
     let active = true;
@@ -226,6 +263,57 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
       setExportBusy(false);
     }
   };
+  const uploadVideo = async (file: File) => {
+    const mimeType = file.type || (file.name.toLowerCase().endsWith('.mkv') ? 'video/x-matroska' : 'video/mp4');
+    setUploading(true);
+    setUploadProgress(0);
+    setActionError(null);
+    try {
+      const initialized = await apiRequest<{ uploadId: string; uploadUrl: string; headers: Record<string, string> }>(`/projects/${id}/uploads/init`, {
+        method: 'POST',
+        body: JSON.stringify({ fileName: file.name, mimeType, sizeBytes: file.size }),
+      });
+      await new Promise<void>((resolve, reject) => {
+        const request = new XMLHttpRequest();
+        request.open('PUT', initialized.uploadUrl);
+        Object.entries(initialized.headers).forEach(([name, value]) => request.setRequestHeader(name, value));
+        request.upload.onprogress = (event) => { if (event.lengthComputable) setUploadProgress(Math.round((event.loaded / event.total) * 100)); };
+        request.onload = () => request.status >= 200 && request.status < 300 ? resolve() : reject(new Error(`Storage upload failed with status ${request.status}.`));
+        request.onerror = () => reject(new Error('Could not upload the video to storage.'));
+        request.send(file);
+      });
+      await apiRequest(`/projects/${id}/uploads/complete`, {
+        method: 'POST', body: JSON.stringify({ uploadId: initialized.uploadId }),
+      });
+      setProcessing(true);
+    } catch (caught) {
+      setActionError(caught instanceof Error ? caught.message : 'Video upload failed.');
+    } finally {
+      setUploading(false);
+    }
+  };
+  const runAiEdit = async () => {
+    if (!aiPrompt.trim() || aiBusy || processing) return;
+    setAiBusy(true);
+    setActionError(null);
+    try {
+      const result = await apiRequest<{ timeline: SavedTimeline; explanation: string; model: string }>(`/projects/${id}/ai-edit`, {
+        method: 'POST',
+        body: JSON.stringify({ prompt: aiPrompt, style: aiStyle, expectedVersion: versionRef.current }),
+      });
+      if (timeline) setPast((items) => [...items.slice(-49), clone(timeline)]);
+      versionRef.current = result.timeline.version;
+      setTimeline(result.timeline.timeline);
+      setSelectedId(result.timeline.timeline.videoTrack.clips[0]?.id ?? null);
+      setFuture([]);
+      setSaveState('saved');
+      setAiExplanation(`${result.explanation} — ${result.model}`);
+    } catch (caught) {
+      setActionError(caught instanceof Error ? caught.message : 'AI editing failed.');
+    } finally {
+      setAiBusy(false);
+    }
+  };
 
   if (loading) return <main className="grid min-h-screen place-items-center bg-[#07090d] text-zinc-400"><LoaderCircle className="size-6 animate-spin text-violet-400" /></main>;
   if (error || !project || !timeline) return <main className="grid min-h-screen place-items-center bg-[#07090d] p-6 text-red-300">{error ?? 'Project not found.'}</main>;
@@ -269,6 +357,21 @@ export default function EditorPage({ params }: { params: Promise<{ id: string }>
           </section>
 
           <aside className="space-y-4">
+            <section className="rounded-2xl border border-violet-400/20 bg-violet-400/5 p-4">
+              <h2 className="flex items-center gap-2 text-sm font-semibold"><Upload className="size-4 text-violet-300" /> Video source</h2>
+              <label className={`mt-3 flex cursor-pointer items-center justify-center rounded-xl border border-dashed border-violet-400/30 px-3 py-3 text-sm text-violet-200 transition hover:bg-violet-400/10 ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+                <input type="file" accept="video/mp4,video/quicktime,video/webm,video/x-matroska,.mkv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadVideo(file); event.currentTarget.value = ''; }} />
+                {uploading ? `Uploading ${uploadProgress}%` : assets.some(({ kind }) => kind === 'original') ? 'Upload another video' : 'Choose a video'}
+              </label>
+              {processing && <div className="mt-3 flex items-center gap-2 text-xs text-amber-300"><LoaderCircle className="size-3.5 animate-spin" /> Generating proxy, audio and transcript…</div>}
+            </section>
+            <section className="rounded-2xl border border-fuchsia-400/20 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/5 p-4">
+              <h2 className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="size-4 text-fuchsia-300" /> AI editor · Ollama</h2>
+              <div className="mt-3 grid grid-cols-2 gap-2">{(['auto', 'highlights', 'social', 'clean'] as const).map((style) => <button key={style} onClick={() => setAiStyle(style)} className={`rounded-lg border px-2 py-2 text-xs capitalize ${aiStyle === style ? 'border-fuchsia-400 bg-fuchsia-400/15 text-fuchsia-100' : 'border-white/10 text-zinc-400'}`}>{style}</button>)}</div>
+              <textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} rows={4} maxLength={2000} placeholder="Example: Make a 45-second vertical highlight. Remove filler and keep the product announcement." className="mt-3 w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none placeholder:text-zinc-600 focus:border-fuchsia-400/50" />
+              <button onClick={() => void runAiEdit()} disabled={aiBusy || processing || !aiPrompt.trim() || !assets.some(({ kind }) => kind === 'proxy')} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 px-3 py-2.5 text-sm font-semibold disabled:opacity-40">{aiBusy ? <LoaderCircle className="size-4 animate-spin" /> : <Sparkles className="size-4" />}{aiBusy ? 'Ollama is editing…' : 'Edit with AI'}</button>
+              {aiExplanation && <p className="mt-3 text-xs leading-5 text-zinc-400">{aiExplanation}</p>}
+            </section>
             <section className="rounded-2xl border border-white/10 bg-white/3 p-4"><h2 className="text-sm font-semibold">Canvas</h2><div className="mt-3 grid grid-cols-4 gap-2">{ratios.map((ratio) => <button key={ratio} onClick={() => commit((draft) => { draft.aspectRatio = ratio; return draft; })} className={`rounded-lg border px-2 py-2 text-xs ${timeline.aspectRatio === ratio ? 'border-violet-400 bg-violet-400/15 text-violet-200' : 'border-white/10 text-zinc-400'}`}>{ratio}</button>)}</div></section>
             <section className="rounded-2xl border border-white/10 bg-white/3 p-4">
               <h2 className="text-sm font-semibold">Clip inspector</h2>
