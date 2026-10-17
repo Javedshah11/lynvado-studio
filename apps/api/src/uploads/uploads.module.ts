@@ -13,5 +13,6 @@ import { UploadsService } from './uploads.service.js';
   imports: [AuthModule, DatabaseModule, ProjectsModule, StorageModule],
   controllers: [UploadsController],
   providers: [UploadsRepository, UploadsService, IngestionQueueService],
+  exports: [IngestionQueueService],
 })
 export class UploadsModule {}

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ArrowRight, Clapperboard, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
   useState,
@@ -79,19 +80,22 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#07090d] px-6 py-12 text-white">
-      <div className="w-full max-w-md">
+    <main className="studio-glow studio-grid flex min-h-screen items-center justify-center px-5 py-10 text-white">
+      <div className="grid w-full max-w-5xl overflow-hidden rounded-[30px] border border-white/10 bg-[#0b0d13]/95 shadow-2xl shadow-black/40 md:grid-cols-[.9fr_1.1fr]">
+        <section className="hidden flex-col justify-between border-r border-white/8 bg-violet-500/8 p-10 md:flex">
+          <Link href="/" className="flex items-center gap-3 text-sm font-semibold"><span className="grid size-10 place-items-center rounded-xl bg-violet-500/15"><Clapperboard className="size-5 text-violet-300" /></span> LYNVADO / STUDIO</Link>
+          <div><Sparkles className="size-8 text-fuchsia-300"/><h2 className="mt-6 text-3xl font-semibold tracking-tight">Create with your own AI.</h2><p className="mt-3 max-w-xs text-sm leading-6 text-zinc-400">From raw upload to a polished, captioned MP4—without sending prompts to a paid model.</p></div>
+          <p className="text-xs text-zinc-600">Ollama · Whisper · FFmpeg</p>
+        </section>
+        <div className="p-7 sm:p-10 md:p-12">
         <Link
           href="/"
-          className="mb-10 inline-block text-xl font-semibold"
+          className="mb-10 inline-flex items-center gap-2 text-sm font-semibold md:hidden"
         >
-          Lynvado{' '}
-          <span className="text-violet-400">
-            Studio
-          </span>
+          <Clapperboard className="size-5 text-violet-300" /> LYNVADO / STUDIO
         </Link>
 
-        <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-8 shadow-2xl">
+        <div>
           <h1 className="text-3xl font-semibold tracking-tight">
             Create your account
           </h1>
@@ -193,11 +197,11 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-white px-4 py-3 font-medium text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-500 px-4 py-3.5 font-semibold text-white transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading
                 ? 'Creating account...'
-                : 'Create account'}
+                : 'Create workspace'} {!loading && <ArrowRight className="size-4" />}
             </button>
           </form>
 
@@ -211,7 +215,7 @@ export default function RegisterPage() {
               Sign in
             </Link>
           </p>
-        </div>
+        </div></div>
       </div>
     </main>
   );

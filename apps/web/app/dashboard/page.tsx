@@ -3,12 +3,15 @@
 import {
   AlertCircle,
   Check,
+  Clapperboard,
+  Clock3,
   Film,
   FolderOpen,
   LoaderCircle,
   LogOut,
   Pencil,
   Plus,
+  Sparkles,
   Trash2,
   X,
 } from 'lucide-react';
@@ -157,28 +160,30 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#07090d] text-zinc-400">
-        <LoaderCircle className="mr-3 size-5 animate-spin text-violet-400" />
-        Loading your workspace...
+      <main className="studio-glow grid min-h-screen place-items-center text-zinc-400">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-black/30 px-5 py-4"><LoaderCircle className="size-5 animate-spin text-violet-400" /> Loading your workspace…</div>
       </main>
     );
   }
 
   if (!user) return null;
 
+  const readyCount = projects.filter(({ status }) => status === 'ready').length;
+  const activeCount = projects.filter(({ status }) => status === 'processing').length;
+
   return (
-    <main className="min-h-screen bg-[#07090d] text-white">
-      <header className="border-b border-white/10 bg-[#07090d]/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-6">
+    <main className="studio-glow min-h-screen text-white">
+      <header className="sticky top-0 z-20 border-b border-white/8 bg-[#07080c]/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5 sm:px-8">
           <div className="flex items-center gap-3">
-            <div className="grid size-9 place-items-center rounded-xl bg-violet-500 text-white shadow-lg shadow-violet-500/20">
-              <Film className="size-5" />
+            <div className="grid size-9 place-items-center rounded-xl border border-violet-300/20 bg-violet-500/15 text-violet-300">
+              <Clapperboard className="size-4.5" />
             </div>
-            <div className="text-lg font-semibold">Lynvado <span className="text-violet-400">Studio</span></div>
+            <div className="text-sm font-semibold tracking-tight">LYNVADO <span className="text-zinc-500">/ STUDIO</span></div>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="hidden text-sm text-zinc-400 sm:block">{user.email}</span>
+            <div className="hidden text-right sm:block"><p className="text-xs font-medium text-zinc-200">{user.displayName}</p><p className="text-[10px] text-zinc-600">{user.email}</p></div>
             <button type="button" onClick={() => void handleLogout()} disabled={loggingOut} className="flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm text-zinc-300 transition hover:border-white/20 hover:bg-white/5 disabled:opacity-50">
               <LogOut className="size-4" />
               <span className="hidden sm:inline">{loggingOut ? 'Logging out...' : 'Logout'}</span>
@@ -187,20 +192,25 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-5 py-10 sm:px-6">
-        <div className="grid gap-8 lg:grid-cols-[1fr_360px] lg:items-end">
+      <div className="studio-grid min-h-[calc(100vh-72px)]"><div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 lg:py-14">
+        <div className="grid gap-8 lg:grid-cols-[1fr_390px] lg:items-end">
           <div>
-            <p className="text-sm font-medium text-violet-400">Your workspace</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Welcome back, {user.displayName}</h1>
-            <p className="mt-3 max-w-2xl text-zinc-400">Organize your videos into projects. Upload and AI processing are the next step.</p>
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[.18em] text-violet-300"><span className="size-1.5 rounded-full bg-emerald-400"/> Local studio online</div>
+            <h1 className="mt-4 text-4xl font-semibold tracking-[-.04em] sm:text-5xl">Good to see you, {user.displayName.split(' ')[0]}.</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400 sm:text-base">Move from raw footage to an intentional, captioned edit with your private AI workflow.</p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-black/20 px-4 py-3"><Film className="size-4 text-violet-300"/><div><p className="text-sm font-semibold">{projects.length}</p><p className="text-[10px] uppercase tracking-wider text-zinc-600">Projects</p></div></div>
+              <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-black/20 px-4 py-3"><Sparkles className="size-4 text-emerald-300"/><div><p className="text-sm font-semibold">{readyCount}</p><p className="text-[10px] uppercase tracking-wider text-zinc-600">Ready</p></div></div>
+              <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-black/20 px-4 py-3"><Clock3 className="size-4 text-amber-300"/><div><p className="text-sm font-semibold">{activeCount}</p><p className="text-[10px] uppercase tracking-wider text-zinc-600">Processing</p></div></div>
+            </div>
           </div>
 
-          <form onSubmit={(event) => void handleCreate(event)} className="rounded-2xl border border-violet-400/20 bg-violet-400/5 p-4">
-            <label htmlFor="project-name" className="text-sm font-medium text-zinc-200">Create a new project</label>
+          <form onSubmit={(event) => void handleCreate(event)} className="rounded-2xl border border-violet-300/20 bg-[#10121a]/90 p-5 shadow-xl shadow-black/20">
+            <label htmlFor="project-name" className="flex items-center gap-2 text-sm font-semibold text-zinc-100"><Plus className="size-4 text-violet-300"/> New project</label>
             <div className="mt-3 flex gap-2">
               <input id="project-name" value={projectName} onChange={(event) => setProjectName(event.target.value)} maxLength={160} placeholder="Podcast episode, product demo..." className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm outline-none placeholder:text-zinc-600 focus:border-violet-400/60" />
-              <button type="submit" disabled={creating || !projectName.trim()} aria-label="Create project" className="grid size-10 shrink-0 place-items-center rounded-xl bg-violet-500 transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-40">
-                {creating ? <LoaderCircle className="size-4 animate-spin" /> : <Plus className="size-5" />}
+              <button type="submit" disabled={creating || !projectName.trim()} aria-label="Create project" className="flex shrink-0 items-center gap-2 rounded-xl bg-violet-500 px-4 text-sm font-semibold transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-40">
+                {creating ? <LoaderCircle className="size-4 animate-spin" /> : <Plus className="size-4" />} Create
               </button>
             </div>
           </form>
@@ -213,10 +223,10 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <section className="mt-10">
+        <section className="mt-14">
           <div className="flex items-end justify-between border-b border-white/10 pb-4">
             <div>
-              <h2 className="text-xl font-semibold">Projects</h2>
+              <h2 className="text-xl font-semibold tracking-tight">Recent projects</h2>
               <p className="mt-1 text-sm text-zinc-500">{projects.length} {projects.length === 1 ? 'project' : 'projects'}</p>
             </div>
           </div>
@@ -232,7 +242,8 @@ export default function DashboardPage() {
           ) : (
             <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => (
-                <article key={project.id} className="group rounded-2xl border border-white/10 bg-white/3 p-5 transition hover:border-violet-400/30 hover:bg-white/5">
+                <article key={project.id} className="group relative overflow-hidden rounded-2xl border border-white/8 bg-[#0d0f15]/90 p-5 transition duration-300 hover:-translate-y-0.5 hover:border-violet-400/30 hover:shadow-xl hover:shadow-black/20">
+                  <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-violet-400/50 to-transparent opacity-0 transition group-hover:opacity-100" />
                   <div className="flex items-start justify-between gap-3">
                     <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-violet-400/10 text-violet-300"><Film className="size-5" /></div>
                     <div className="flex gap-1">
@@ -257,10 +268,10 @@ export default function DashboardPage() {
                     <>
                       <h3 className="mt-5 truncate font-medium" title={project.name}>{project.name}</h3>
                       <div className="mt-3 flex items-center justify-between text-xs text-zinc-500">
-                        <span className="rounded-full bg-white/5 px-2 py-1 capitalize">{project.status}</span>
+                      <span className={`rounded-full px-2 py-1 capitalize ${project.status === 'ready' ? 'bg-emerald-400/10 text-emerald-300' : project.status === 'failed' ? 'bg-red-400/10 text-red-300' : project.status === 'processing' ? 'bg-amber-400/10 text-amber-300' : 'bg-white/5'}`}>{project.status}</span>
                         <time dateTime={project.updatedAt}>Updated {formatDate(project.updatedAt)}</time>
                       </div>
-                      <Link href={`/projects/${project.id}`} className="mt-4 flex items-center justify-center rounded-xl border border-violet-400/20 bg-violet-400/10 px-3 py-2 text-sm font-medium text-violet-200 transition hover:bg-violet-400/20">Open editor</Link>
+                      <Link href={`/projects/${project.id}`} className="mt-5 flex items-center justify-between rounded-xl border border-white/8 bg-white/3 px-3 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-violet-400/30 hover:bg-violet-400/10 hover:text-white">Open editor <span className="text-violet-300">→</span></Link>
                     </>
                   )}
                 </article>
@@ -268,7 +279,7 @@ export default function DashboardPage() {
             </div>
           )}
         </section>
-      </div>
+      </div></div>
     </main>
   );
 }

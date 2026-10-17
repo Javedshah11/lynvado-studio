@@ -85,6 +85,43 @@ export interface CaptionTrack {
   }>;
 }
 
+export interface Transcript {
+  id: string;
+  status: 'processing' | 'completed' | 'failed';
+  language: string | null;
+  segments: Array<{
+    id: string;
+    startMs: number;
+    endMs: number;
+    text: string;
+    speaker: string | null;
+    confidence: number | null;
+  }>;
+}
+
+export interface ClipSuggestion {
+  id: string;
+  startMs: number;
+  endMs: number;
+  title: string;
+  score: number;
+  reason: string;
+  status: 'suggested' | 'accepted' | 'rejected';
+}
+
+export interface ProcessingJob {
+  id: string;
+  mediaAssetId: string | null;
+  type: 'ingestion' | 'transcription' | 'clip_generation' | 'export';
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  progress: number;
+  error: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  updatedAt: string;
+}
+
 export interface ExportJob {
   id: string;
   status: 'queued' | 'processing' | 'completed' | 'failed';

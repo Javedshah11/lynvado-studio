@@ -28,6 +28,15 @@ const worker = new Worker<IngestionJobPayload>(
       job.data,
       async (progress) => job.updateProgress(progress),
       async (payload) => {
+        const existing = await transcriptionQueue.getJob(payload.processingJobId);
+        if (existing) {
+          const state = await existing.getState();
+          if (state === 'failed' || state === 'completed') {
+            await existing.remove();
+          } else {
+            return;
+          }
+        }
         await transcriptionQueue.add('transcribe-audio', payload, {
           jobId: payload.processingJobId,
           attempts: 3,

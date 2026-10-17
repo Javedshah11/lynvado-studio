@@ -35,6 +35,12 @@ export class IngestionQueueService implements OnModuleDestroy {
     });
   }
 
+  async requeue(payload: IngestionJobPayload): Promise<void> {
+    const existing = await this.queue.getJob(payload.processingJobId);
+    if (existing) await existing.remove();
+    await this.enqueue(payload);
+  }
+
   async onModuleDestroy(): Promise<void> {
     await this.queue.close();
     await this.redis.quit();

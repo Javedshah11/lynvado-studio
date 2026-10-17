@@ -41,6 +41,7 @@ pnpm-debug.log*
 # Local storage
 storage/*
 !storage/.gitkeep
+apps/intelligence/models/
 
 # Coverage
 coverage/

@@ -3,8 +3,25 @@ import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
+import av
+from fastapi import HTTPException
 from faster_whisper import WhisperModel
+
+
+# faster-whisper 1.2.1 passes metadata_errors to av.open, but PyAV 19
+# removed that keyword. Keep decoding local and compatible until the upstream
+# call is updated.
+_av_open = av.open
+
+
+def _compatible_av_open(*args: Any, **kwargs: Any) -> Any:
+    kwargs.pop("metadata_errors", None)
+    return _av_open(*args, **kwargs)
+
+
+av.open = _compatible_av_open
 
 
 @dataclass(frozen=True)
@@ -25,8 +42,18 @@ class TranscriptionResult:
 
 class WhisperTranscriber:
     def __init__(self) -> None:
+        configured_model = os.getenv("WHISPER_MODEL", "base")
+        models_directory = Path(__file__).resolve().parents[1] / "models"
+        bundled_model = models_directory / configured_model
+        default_local_model = models_directory / "faster-whisper-base.en"
+        if bundled_model.is_dir():
+            model = str(bundled_model)
+        elif default_local_model.is_dir():
+            model = str(default_local_model)
+        else:
+            model = configured_model
         self.model = WhisperModel(
-            os.getenv("WHISPER_MODEL", "small"),
+            model,
             device=os.getenv("WHISPER_DEVICE", "auto"),
             compute_type=os.getenv("WHISPER_COMPUTE_TYPE", "int8"),
         )
@@ -36,7 +63,7 @@ class WhisperTranscriber:
             str(audio_path),
             language=language,
             vad_filter=True,
-            beam_size=5,
+            beam_size=3,
             condition_on_previous_text=False,
         )
         output: list[TranscriptionSegment] = []
@@ -65,4 +92,14 @@ class WhisperTranscriber:
 
 @lru_cache(maxsize=1)
 def get_transcriber() -> WhisperTranscriber:
-    return WhisperTranscriber()
+    try:
+        return WhisperTranscriber()
+    except Exception as error:
+        model = os.getenv("WHISPER_MODEL", "base")
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"Whisper model '{model}' is unavailable. "
+                "Download it once while connected to the internet, then retry processing."
+            ),
+        ) from error

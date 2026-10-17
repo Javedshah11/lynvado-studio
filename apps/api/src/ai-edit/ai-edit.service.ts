@@ -42,14 +42,18 @@ export class AiEditService {
     if (!transcript) throw new BadRequestException('Transcription is not complete yet.');
     const segments = await this.database.db.select().from(transcriptSegments)
       .where(eq(transcriptSegments.transcriptId, transcript.id)).orderBy(asc(transcriptSegments.position));
-    if (!segments.length) throw new BadRequestException('The transcript has no editable speech segments.');
+    const editableSegments = segments.length > 0 ? segments : [{
+      startMs: 0,
+      endMs: asset.durationMs,
+      text: '[Silent video: no spoken audio was detected. Keep the useful visual content.]',
+    }];
 
-    const decision = await this.askOllama(input.prompt, input.style, segments.map((segment, index) => (
+    const decision = await this.askOllama(input.prompt, input.style, editableSegments.map((segment, index) => (
       `${index}|${segment.startMs}|${segment.endMs}|${segment.text.replaceAll(/\s+/g, ' ').slice(0, 300)}`
     )).join('\n'));
     const clips = decision.selections.map(({ startIndex, endIndex }) => {
-      const start = segments[Math.min(startIndex, segments.length - 1)];
-      const end = segments[Math.min(Math.max(startIndex, endIndex), segments.length - 1)];
+      const start = editableSegments[Math.min(startIndex, editableSegments.length - 1)];
+      const end = editableSegments[Math.min(Math.max(startIndex, endIndex), editableSegments.length - 1)];
       return { id: randomUUID(), assetId: asset.id, inMs: start.startMs, outMs: Math.min(asset.durationMs!, end.endMs) };
     }).filter((clip) => clip.outMs > clip.inMs);
     if (!clips.length) throw new BadGatewayException('Ollama did not return any valid edit selections.');

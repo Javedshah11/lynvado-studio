@@ -107,9 +107,22 @@ export async function createNormalizedAudio(
   inputPath: string,
   outputPath: string,
   hasAudio: boolean,
+  durationMs: number,
 ): Promise<void> {
   if (!hasAudio) {
-    throw new Error('Uploaded video does not contain an audio stream.');
+    await runProcess(workerConfig.FFMPEG_PATH, [
+      '-y',
+      '-f',
+      'lavfi',
+      '-i',
+      'anullsrc=channel_layout=mono:sample_rate=16000',
+      '-t',
+      (Math.max(1, durationMs) / 1000).toFixed(3),
+      '-c:a',
+      'pcm_s16le',
+      outputPath,
+    ]);
+    return;
   }
 
   await runProcess(workerConfig.FFMPEG_PATH, [

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ArrowRight, Clapperboard, LockKeyhole } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
   useState,
@@ -73,19 +74,22 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#07090d] px-6 py-12 text-white">
-      <div className="w-full max-w-md">
+    <main className="studio-glow studio-grid flex min-h-screen items-center justify-center px-5 py-10 text-white">
+      <div className="grid w-full max-w-5xl overflow-hidden rounded-[30px] border border-white/10 bg-[#0b0d13]/95 shadow-2xl shadow-black/40 md:grid-cols-[.9fr_1.1fr]">
+        <section className="hidden flex-col justify-between border-r border-white/8 bg-violet-500/8 p-10 md:flex">
+          <Link href="/" className="flex items-center gap-3 text-sm font-semibold"><span className="grid size-10 place-items-center rounded-xl bg-violet-500/15"><Clapperboard className="size-5 text-violet-300" /></span> LYNVADO / STUDIO</Link>
+          <div><LockKeyhole className="size-8 text-violet-300"/><h2 className="mt-6 text-3xl font-semibold tracking-tight">Your studio is ready.</h2><p className="mt-3 max-w-xs text-sm leading-6 text-zinc-400">Return to your projects, local AI edits, transcripts, and exports.</p></div>
+          <p className="text-xs text-zinc-600">Private media · Local intelligence</p>
+        </section>
+        <div className="p-7 sm:p-10 md:p-12">
         <Link
           href="/"
-          className="mb-10 inline-block text-xl font-semibold"
+          className="mb-10 inline-flex items-center gap-2 text-sm font-semibold md:hidden"
         >
-          Lynvado{' '}
-          <span className="text-violet-400">
-            Studio
-          </span>
+          <Clapperboard className="size-5 text-violet-300" /> LYNVADO / STUDIO
         </Link>
 
-        <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-8">
+        <div>
           <h1 className="text-3xl font-semibold">
             Welcome back
           </h1>
@@ -120,7 +124,7 @@ export default function LoginPage() {
                 placeholder="you@example.com"
                 required
                 disabled={loading}
-                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 outline-none transition focus:border-violet-400 disabled:opacity-60"
+                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3.5 outline-none transition focus:border-violet-400 disabled:opacity-60"
               />
             </div>
 
@@ -145,7 +149,7 @@ export default function LoginPage() {
                 placeholder="Password"
                 required
                 disabled={loading}
-                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 outline-none transition focus:border-violet-400 disabled:opacity-60"
+                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3.5 outline-none transition focus:border-violet-400 disabled:opacity-60"
               />
             </div>
 
@@ -161,11 +165,11 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-white py-3 font-medium text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-500 py-3.5 font-semibold text-white transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading
                 ? 'Signing in...'
-                : 'Sign in'}
+                : 'Enter studio'} {!loading && <ArrowRight className="size-4" />}
             </button>
           </form>
 
@@ -179,7 +183,7 @@ export default function LoginPage() {
               Create account
             </Link>
           </p>
-        </div>
+        </div></div>
       </div>
     </main>
   );

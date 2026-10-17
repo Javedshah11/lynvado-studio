@@ -3,9 +3,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
+  captionSegments,
+  captionTracks,
+  clipSuggestions,
   mediaAssets,
   processingJobs,
   projects,
+  transcriptSegments,
+  transcripts,
 } from '@lynvado/database';
 import * as databaseSchema from '@lynvado/database';
 import { and, eq } from 'drizzle-orm';
@@ -75,7 +80,7 @@ export async function processIngestion(
     await markProcessing(db, payload.processingJobId, 65);
     await updateProgress(65);
 
-    await createNormalizedAudio(inputPath, audioPath, metadata.hasAudio);
+    await createNormalizedAudio(inputPath, audioPath, metadata.hasAudio, metadata.durationMs);
     await markProcessing(db, payload.processingJobId, 80);
     await updateProgress(80);
 
@@ -100,7 +105,7 @@ export async function processIngestion(
         })
         .where(eq(mediaAssets.id, payload.mediaAssetId));
 
-      const audioAsset = await upsertDerivedAsset(tx, {
+      await upsertDerivedAsset(tx, {
         projectId: payload.projectId,
         kind: 'proxy',
         storageKey: proxyKey,
@@ -110,30 +115,6 @@ export async function processIngestion(
         durationMs: metadata.durationMs,
       });
 
-      const [transcriptionJob] = await tx
-        .insert(processingJobs)
-        .values({
-          projectId: payload.projectId,
-          mediaAssetId: audioAsset.id,
-          type: 'transcription',
-          status: 'queued',
-        })
-        .onConflictDoUpdate({
-          target: [processingJobs.type, processingJobs.mediaAssetId],
-          set: {
-            status: 'queued',
-            progress: 0,
-            error: null,
-            startedAt: null,
-            completedAt: null,
-            updatedAt: new Date(),
-          },
-        })
-        .returning();
-
-      if (!transcriptionJob) {
-        throw new Error('Failed to create transcription job.');
-      }
       await upsertDerivedAsset(tx, {
         projectId: payload.projectId,
         kind: 'thumbnail',
@@ -142,7 +123,8 @@ export async function processIngestion(
         sizeBytes: thumbnail.sizeBytes,
         etag: thumbnail.etag,
       });
-      await upsertDerivedAsset(tx, {
+
+      const audioAsset = await upsertDerivedAsset(tx, {
         projectId: payload.projectId,
         kind: 'audio',
         storageKey: audioKey,
@@ -152,6 +134,66 @@ export async function processIngestion(
         durationMs: metadata.durationMs,
       });
 
+      const [transcriptionJob] = await tx
+        .insert(processingJobs)
+        .values({
+          projectId: payload.projectId,
+          mediaAssetId: audioAsset.id,
+          type: 'transcription',
+          status: metadata.hasAudio ? 'queued' : 'completed',
+          progress: metadata.hasAudio ? 0 : 100,
+          completedAt: metadata.hasAudio ? null : new Date(),
+        })
+        .onConflictDoUpdate({
+          target: [processingJobs.type, processingJobs.mediaAssetId],
+          set: {
+            status: metadata.hasAudio ? 'queued' : 'completed',
+            progress: metadata.hasAudio ? 0 : 100,
+            error: null,
+            startedAt: null,
+            completedAt: metadata.hasAudio ? null : new Date(),
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+
+      if (!transcriptionJob) {
+        throw new Error('Failed to create transcription job.');
+      }
+
+      if (!metadata.hasAudio) {
+        const [transcript] = await tx.insert(transcripts).values({
+          projectId: payload.projectId,
+          mediaAssetId: audioAsset.id,
+          language: null,
+          status: 'completed',
+        }).onConflictDoUpdate({
+          target: transcripts.mediaAssetId,
+          set: { language: null, status: 'completed', updatedAt: new Date() },
+        }).returning();
+        if (!transcript) throw new Error('Failed to persist silent transcript.');
+
+        const [captionTrack] = await tx.insert(captionTracks).values({
+          projectId: payload.projectId,
+          transcriptId: transcript.id,
+          language: null,
+          style: {
+            fontFamily: 'Inter',
+            fontSize: 48,
+            color: '#FFFFFF',
+            backgroundColor: '#000000B3',
+            position: 'bottom',
+          },
+        }).onConflictDoUpdate({
+          target: captionTracks.transcriptId,
+          set: { language: null, updatedAt: new Date() },
+        }).returning();
+        if (!captionTrack) throw new Error('Failed to persist silent caption track.');
+
+        await tx.delete(transcriptSegments).where(eq(transcriptSegments.transcriptId, transcript.id));
+        await tx.delete(captionSegments).where(eq(captionSegments.trackId, captionTrack.id));
+        await tx.delete(clipSuggestions).where(eq(clipSuggestions.transcriptId, transcript.id));
+      }
       await tx
         .update(processingJobs)
         .set({
@@ -170,18 +212,18 @@ export async function processIngestion(
 
       await tx
         .update(projects)
-        .set({ status: 'processing', updatedAt: new Date() })
+        .set({ status: metadata.hasAudio ? 'processing' : 'ready', updatedAt: new Date() })
         .where(eq(projects.id, payload.projectId));
 
-      return {
+      return metadata.hasAudio ? {
         processingJobId: transcriptionJob.id,
         projectId: payload.projectId,
         mediaAssetId: audioAsset.id,
         storageKey: audioKey,
-      };
+      } : null;
     });
 
-    await enqueueTranscription(transcriptionPayload);
+    if (transcriptionPayload) await enqueueTranscription(transcriptionPayload);
     await updateProgress(100);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown ingestion failure.';
