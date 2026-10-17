@@ -1,4 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
+import { DatabaseService } from '../database/database.service.js';
+import { ObjectStorage } from '../storage/object-storage.js';
 
 interface HealthResponse {
   status: 'ok';
@@ -10,6 +12,11 @@ interface HealthResponse {
 
 @Controller('health')
 export class HealthController {
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly storage: ObjectStorage,
+  ) {}
+
   @Get()
   getHealth(): HealthResponse {
     return {
@@ -19,5 +26,12 @@ export class HealthController {
       uptimeSeconds: Math.floor(process.uptime()),
       timestamp: new Date().toISOString(),
     };
+  }
+
+  @Get('ready')
+  async getReadiness() {
+    const database = await this.database.ping();
+    await this.storage.ensureBucket();
+    return { status: 'ok' as const, database, storage: true };
   }
 }

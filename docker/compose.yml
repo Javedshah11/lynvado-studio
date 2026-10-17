@@ -61,6 +61,51 @@ services:
     networks:
       - lynvado-network
 
+  minio:
+    image: lynvado/minio:RELEASE.2025-10-15T17-29-55Z
+    build:
+      context: ./minio
+      args:
+        MINIO_VERSION: RELEASE.2025-10-15T17-29-55Z
+    container_name: lynvado-minio
+    restart: unless-stopped
+
+    command:
+      [
+        "server",
+        "/data",
+        "--console-address",
+        ":9001",
+      ]
+
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-lynvado}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-lynvado-development-storage-secret}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
+
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+
+    volumes:
+      - lynvado_minio_data:/data
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:9000/minio/health/live",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+    networks:
+      - lynvado-network
+
 
 networks:
   lynvado-network:
@@ -73,3 +118,6 @@ volumes:
 
   lynvado_redis_data:
     name: lynvado-redis-data
+
+  lynvado_minio_data:
+    name: lynvado-minio-data

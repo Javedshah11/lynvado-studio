@@ -41,6 +41,21 @@ async function bootstrap(): Promise<void> {
   app.enableCors({
     origin: webOrigin,
     credentials: true,
+    methods: [
+      'GET',
+      'HEAD',
+      'POST',
+      'PUT',
+      'PATCH',
+      'DELETE',
+      'OPTIONS',
+    ],
+    allowedHeaders: [
+      'Authorization',
+      'Content-Type',
+      'Idempotency-Key',
+    ],
+    maxAge: 86400,
   });
 
   app.enableShutdownHooks();

@@ -93,5 +93,10 @@ import {
 
     RefreshTokenService,
   ],
+
+  exports: [
+    JwtAuthGuard,
+    JwtModule,
+  ],
 })
 export class AuthModule {}

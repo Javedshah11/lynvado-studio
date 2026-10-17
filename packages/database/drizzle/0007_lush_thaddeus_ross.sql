@@ -1,0 +1,2 @@
+ALTER TABLE "processing_jobs" ADD COLUMN "request_key" varchar(128);--> statement-breakpoint
+CREATE UNIQUE INDEX "processing_jobs_project_type_request_unique" ON "processing_jobs" USING btree ("project_id","type","request_key");

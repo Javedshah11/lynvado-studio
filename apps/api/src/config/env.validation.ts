@@ -35,6 +35,56 @@ export const environmentSchema = z.object({
       'redis://localhost:6380',
     ),
 
+  STORAGE_ENDPOINT: z
+    .string()
+    .url()
+    .default('http://localhost:9000'),
+
+  STORAGE_REGION: z
+    .string()
+    .min(1)
+    .default('us-east-1'),
+
+  STORAGE_ACCESS_KEY: z
+    .string()
+    .min(3)
+    .default('lynvado'),
+
+  STORAGE_SECRET_KEY: z
+    .string()
+    .min(8)
+    .default(
+      'lynvado-development-storage-secret',
+    ),
+
+  STORAGE_BUCKET: z
+    .string()
+    .regex(
+      /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/,
+      'Must be a valid S3 bucket name.',
+    )
+    .default('lynvado-media'),
+
+  STORAGE_FORCE_PATH_STYLE: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
+
+  STORAGE_SIGNED_URL_TTL_SECONDS:
+    z.coerce
+      .number()
+      .int()
+      .min(60)
+      .max(86400)
+      .default(900),
+
+  UPLOAD_MAX_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(20 * 1024 * 1024 * 1024)
+    .default(5 * 1024 * 1024 * 1024),
+
   WEB_ORIGIN: z
     .string()
     .url()

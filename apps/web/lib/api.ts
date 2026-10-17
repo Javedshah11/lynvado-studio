@@ -14,6 +14,87 @@ export interface AuthResponse {
   accessToken: string;
 }
 
+export type ProjectStatus =
+  | 'draft'
+  | 'processing'
+  | 'ready'
+  | 'failed'
+  | 'archived';
+
+export interface LynvadoProject {
+  id: string;
+  ownerId: string;
+  name: string;
+  status: ProjectStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TimelineAspectRatio = '16:9' | '9:16' | '1:1' | '4:5';
+
+export interface TimelineClip {
+  id: string;
+  assetId: string;
+  inMs: number;
+  outMs: number;
+}
+
+export interface TimelineCaption {
+  id: string;
+  startMs: number;
+  endMs: number;
+  text: string;
+}
+
+export interface TimelineDocument {
+  schemaVersion: 1;
+  aspectRatio: TimelineAspectRatio;
+  videoTrack: { clips: TimelineClip[] };
+  captionTrack: { enabled: boolean; items: TimelineCaption[] };
+}
+
+export interface SavedTimeline {
+  id: string;
+  projectId: string;
+  version: number;
+  timeline: TimelineDocument;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MediaAsset {
+  id: string;
+  projectId: string;
+  kind: 'original' | 'proxy' | 'thumbnail' | 'audio' | 'export';
+  originalFileName: string | null;
+  mimeType: string;
+  sizeBytes: number;
+  durationMs: number | null;
+  width: number | null;
+  height: number | null;
+  createdAt: string;
+  downloadUrl: string | null;
+}
+
+export interface CaptionTrack {
+  segments: Array<{
+    id: string;
+    startMs: number;
+    endMs: number;
+    text: string;
+  }>;
+}
+
+export interface ExportJob {
+  id: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  progress: number;
+  error: string | null;
+  createdAt: string;
+  completedAt: string | null;
+  downloadable: boolean;
+}
+
 interface ApiErrorBody {
   message?: string | string[];
 }
